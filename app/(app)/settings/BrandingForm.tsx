@@ -1,8 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AgencySettings } from "../../../lib/settings";
+
+/** Downscale any image to a small logo-friendly data URL (always < server cap).
+ *  Prefers PNG (keeps transparency, great for logos); falls back to JPEG. */
+function downscaleLogo(img: HTMLImageElement): string {
+  const MAX_SIDE = 512;
+  const CAP = 330_000; // chars; server rejects logo_data past 500k
+  const scale = Math.min(
+    1,
+    MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight)
+  );
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unavailable");
+  ctx.drawImage(img, 0, 0, w, h);
+  let out = canvas.toDataURL("image/png");
+  if (out.length <= CAP) return out;
+  let q = 0.9;
+  out = canvas.toDataURL("image/jpeg", q);
+  while (out.length > CAP && q > 0.3) {
+    q -= 0.1;
+    out = canvas.toDataURL("image/jpeg", q);
+  }
+  return out;
+}
 
 export default function BrandingForm({ initial }: { initial: AgencySettings }) {
   const router = useRouter();
@@ -15,16 +43,33 @@ export default function BrandingForm({ initial }: { initial: AgencySettings }) {
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const logoRef = useRef<HTMLInputElement>(null);
+
   function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
+    e.target.value = "";
     if (!f) return;
-    if (f.size > 350_000) {
-      setError("Logo is too large — please use an image under 350KB.");
+    setError("");
+    if (!f.type.startsWith("image/")) {
+      setError("Please choose an image file.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setLogoData(String(reader.result || ""));
-    reader.readAsDataURL(f);
+    // Downscale on-device so phone photos (often several MB) always fit.
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        setLogoData(downscaleLogo(img));
+      } catch {
+        setError("Could not read that image. Try a different file.");
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError("Could not read that image. Try a different file.");
+    };
+    img.src = url;
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -90,20 +135,36 @@ export default function BrandingForm({ initial }: { initial: AgencySettings }) {
       </div>
       <div className="form-group">
         <label className="field">Logo</label>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           {logoData ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoData} alt="Agency logo" style={{ width: 48, height: 48, objectFit: "contain", borderRadius: 10, border: "1px solid var(--border)" }} />
           ) : (
             <span style={{ color: "var(--muted)", fontSize: 13 }}>No logo uploaded</span>
           )}
-          <input type="file" accept="image/*" onChange={onLogo} />
+          <input
+            ref={logoRef}
+            type="file"
+            accept="image/*"
+            onChange={onLogo}
+            style={{ display: "none" }}
+          />
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => logoRef.current?.click()}
+          >
+            {logoData ? "Change logo…" : "Upload logo…"}
+          </button>
           {logoData && (
             <button type="button" className="btn btn-sm" onClick={() => setLogoData("")}>
               Remove
             </button>
           )}
         </div>
+        <p className="sub" style={{ margin: "6px 0 0" }}>
+          Any photo works — it&apos;s resized automatically.
+        </p>
       </div>
       <button className="btn btn-primary" disabled={busy}>
         {busy ? "Saving…" : "Save branding"}

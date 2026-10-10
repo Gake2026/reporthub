@@ -191,3 +191,40 @@ Demo data: 4 clients (3 active + 1 paused), ~1,790 daily metric rows across
   nothing (client_id set NULL) — disable/remove the account in Team.
 - Passwords: PBKDF2-SHA-256, 120k iterations. No password-reset flow in
   v1 — owners set/reset passwords in Team.
+
+## Mobile pass (2026-10-10)
+Jake reported the Render deployment unusable on his Android (390px); desktop was fine.
+- Replaced the old ≤860px "sidebar becomes a wrapped row" hack with a real hamburger
+  drawer: new client component `components/NavToggle.tsx` toggles `body.nav-open`;
+  sidebar slides in as a fixed drawer (min(280px, 84vw)) with backdrop; closes on nav
+  click, backdrop tap, or Escape. Logout stays reachable (sidebar-foot no longer hidden).
+- ≤860px: larger touch targets (nav links 12px padding/15px font, buttons min-height
+  44px except .btn-sm, range presets bigger); picture-editor grid stacks to 1 column.
+- ≤640px: CSV mapping grid (`.mapgrid`) stacks to single-column rows, header hidden.
+- ≤480px: KPI grid fixed 2-col, smaller KPI values, tighter bar-row/table padding,
+  invoice sheet padding 36→20, login/card padding reduced, report-head wraps.
+- Tables keep contained horizontal scroll (`.table-wrap` + touch momentum); body has
+  `overflow-x: clip` so no page-level sideways scroll.
+- Invoice sheet moved from inline style to `.invoice-sheet` class; account editor grid
+  moved from inline style to `.editor-grid` class.
+- Crop editor already used Pointer Events + touch-action:none, so touch-drag works;
+  stage is 280px and fits a 390px viewport.
+- Desktop CSS untouched (all changes inside max-width queries or new classes).
+- Verified: `npm run build` clean; prod server: /login 200, authed / 200 with
+  nav-toggle/nav-backdrop markup; structural CSS checks (breakpoints, drawer rule,
+  no leftover static-sidebar rule, no fixed pixel widths ≥390px in inline styles).
+- NOT verifiable here: no headed browser in this env — final visual sign-off is
+  Jake on his phone.
+
+## Logo upload fix (2026-10-10, same mobile pass)
+Jake could not change the brand logo from his Android: BrandingForm rejected every
+file over 350KB client-side, and phone gallery photos are 2–12MB, so uploads always
+failed with "Logo is too large". Fix: the picker now downscales on-device (canvas,
+longest side ≤512px, PNG preferred to keep transparency, JPEG quality stepped down
+until the data URL is ≤330k chars — always under the server's 500k cap). Any photo
+now works; the old size error path is gone. Also replaced the raw file input with a
+tappable "Upload logo…" button (same pattern as the avatar flow) and reset the input
+value so the same file can be re-picked.
+Verified: build clean; PUT small logo → 200 and sidebar renders brand-logo;
+PUT 600k-char logo → clean 400 "too large" (server cap intact); client cap (330k)
+sits safely below it.

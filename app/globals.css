@@ -24,6 +24,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 
 a { color: var(--brand); text-decoration: none; }
@@ -127,7 +128,7 @@ a:hover { text-decoration: underline; }
 @media (max-width: 1000px) { .grid2 { grid-template-columns: 1fr; } }
 
 /* ---- Tables ---- */
-.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
 table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 table.data th {
   text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em;
@@ -236,12 +237,71 @@ label.field { display: block; font-size: 13px; font-weight: 600; margin-bottom: 
   .card, .kpi, .table-wrap { box-shadow: none; break-inside: avoid; }
 }
 
+/* ---- Mobile nav drawer ---- */
+.nav-toggle {
+  display: none;
+  width: 44px; height: 44px; flex-shrink: 0;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 8px; cursor: pointer;
+  flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+}
+.nav-toggle span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
+.nav-backdrop { display: none; }
+
+/* ---- Picture editor grid (account) ---- */
+.editor-grid { display: grid; grid-template-columns: auto 1fr; gap: 24px; }
+
+/* ---- Invoice sheet ---- */
+.invoice-sheet { max-width: 860px; padding: 36px; }
+
 /* ---- Responsive ---- */
 @media (max-width: 860px) {
-  .sidebar { position: static; width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 12px; }
-  .brand { padding: 4px 8px; }
-  .sidebar-foot { display: none; }
+  .nav-toggle { display: inline-flex; }
+  .sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0;
+    width: min(280px, 84vw);
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    z-index: 60;
+    border-right: 1px solid var(--border);
+    box-shadow: 8px 0 24px rgba(16, 24, 40, 0.12);
+    padding: 18px 12px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  body.nav-open .sidebar { transform: none; }
+  body.nav-open .nav-backdrop {
+    display: block; position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.45); z-index: 55;
+  }
   .main { margin-left: 0; }
   .content { padding: 16px; }
   .topbar { padding: 10px 16px; }
+  .navlink { padding: 12px; font-size: 15px; }
+  .btn:not(.btn-sm) { min-height: 44px; }
+  .rangebar .preset { padding: 10px 16px; }
+  .editor-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .mapgrid { grid-template-columns: 1fr; row-gap: 6px; padding: 12px 0; }
+  .mapgrid.head { display: none; }
+}
+
+@media (max-width: 480px) {
+  .content { padding: 14px 12px 40px; }
+  .topbar { padding: 10px 12px; gap: 10px; }
+  .topbar h1 { font-size: 16px; }
+  .userchip { font-size: 12px; }
+  .pagehead h1 { font-size: 18px; }
+  .card { padding: 16px; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpi { padding: 12px; }
+  .kpi .value { font-size: 20px; }
+  .bar-row { grid-template-columns: 104px 1fr 86px; font-size: 12.5px; }
+  table.data { font-size: 13px; }
+  table.data th, table.data td { padding: 9px 10px; }
+  .invoice-sheet { padding: 20px; }
+  .login-wrap { padding: 16px; }
+  .report-head { flex-wrap: wrap; }
 }

@@ -403,10 +403,7 @@ export default function AccountClient() {
           </p>
           {editorErr && <div className="alert alert-error">{editorErr}</div>}
 
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: "auto 1fr", gap: 24 }}
-          >
+          <div className="editor-grid">
             <div
               style={{
                 position: "relative",

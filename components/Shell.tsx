@@ -6,6 +6,7 @@ import { visibleClientIds } from "../lib/auth";
 import { unreadAlertCount } from "../lib/alerts";
 import LogoutButton from "./LogoutButton";
 import Avatar from "./Avatar";
+import NavToggle from "./NavToggle";
 
 const NAV: Array<{ href: string; label: string; roles: string[]; badge?: "alerts" }> = [
   { href: "/", label: "Overview", roles: ["owner", "manager"] },
@@ -99,6 +100,7 @@ export default async function Shell({
       </aside>
       <div className="main">
         <div className="topbar">
+          <NavToggle />
           <div className="spacer" />
           <span className="userchip">
             <Avatar name={user.name} avatar={user.avatar} size={24} />

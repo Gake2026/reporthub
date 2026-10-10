@@ -69,7 +69,7 @@ export default function InvoiceDoc({
         <PrintButton />
       </div>
 
-      <div className="card" style={{ maxWidth: 860, padding: 36 }}>
+      <div className="card invoice-sheet">
         <div className="report-head">
           {settings.logo_data ? (
             <img src={settings.logo_data} alt="" />
