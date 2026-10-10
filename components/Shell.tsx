@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { headers } from "next/headers";
 import type { SessionUser } from "../lib/auth";
 import type { AgencySettings } from "../lib/settings";
 import { visibleClientIds } from "../lib/auth";
@@ -7,6 +5,7 @@ import { unreadAlertCount } from "../lib/alerts";
 import LogoutButton from "./LogoutButton";
 import Avatar from "./Avatar";
 import NavToggle from "./NavToggle";
+import NavLinks, { type NavLinkItem } from "./NavLinks";
 
 const NAV: Array<{ href: string; label: string; roles: string[]; badge?: "alerts" }> = [
   { href: "/", label: "Overview", roles: ["owner", "manager"] },
@@ -29,15 +28,17 @@ export default async function Shell({
   settings: AgencySettings;
   children: React.ReactNode;
 }) {
-  const h = await headers();
-  const pathname = h.get("x-pathname") || "/";
-  const links =
+  const links: NavLinkItem[] =
     user.role === "client"
       ? [
-          { href: `/clients/${user.client_id}`, label: "My Dashboard", roles: ["client"] },
-          { href: "/account", label: "My account", roles: ["client"] },
+          { href: `/clients/${user.client_id}`, label: "My Dashboard" },
+          { href: "/account", label: "My account" },
         ]
-      : NAV.filter((n) => n.roles.includes(user.role));
+      : NAV.filter((n) => n.roles.includes(user.role)).map((n) => ({
+          href: n.href,
+          label: n.label,
+          badge: n.badge,
+        }));
   const initial = settings.agency_name.trim().charAt(0).toUpperCase() || "R";
   const unread =
     user.role === "owner" || user.role === "manager"
@@ -56,36 +57,7 @@ export default async function Shell({
           )}
           <span>{settings.agency_name}</span>
         </div>
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={
-              "navlink" +
-              (pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href))
-                ? " active"
-                : "")
-            }
-          >
-            <span className="dot" />
-            {l.label}
-            {"badge" in l && l.badge === "alerts" && unread > 0 && (
-              <span
-                style={{
-                  marginLeft: "auto",
-                  background: "var(--red, #dc2626)",
-                  color: "#fff",
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: "1px 8px",
-                }}
-              >
-                {unread}
-              </span>
-            )}
-          </Link>
-        ))}
+        <NavLinks links={links} alertsUnread={unread} />
         <div className="sidebar-foot">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Avatar name={user.name} avatar={user.avatar} size={32} />
