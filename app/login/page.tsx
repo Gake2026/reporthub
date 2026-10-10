@@ -1,8 +1,14 @@
 export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
+import { getSession } from "../../lib/auth";
 import { getSettings } from "../../lib/settings";
 import LoginForm from "./LoginForm";
 
 export default async function LoginPage() {
+  // Already signed in with a live session? Skip the form. A stale cookie
+  // (session wiped server-side) simply renders the form — no redirect loop.
+  const session = await getSession();
+  if (session) redirect("/");
   const settings = getSettings();
   const initial = settings.agency_name.trim().charAt(0).toUpperCase() || "R";
   return (

@@ -9,9 +9,10 @@ export function middleware(req: NextRequest) {
   if (!token && !PUBLIC_PATHS.has(pathname)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
-  if (token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
+  // NOTE: no bounce for token + /login here. A stale cookie (e.g. session
+  // wiped by a redeploy on hosts without persistent disks) would ping-pong
+  // /login -> / -> /login forever (ERR_TOO_MANY_REDIRECTS). The login page
+  // itself validates the session server-side and redirects valid users to /.
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
