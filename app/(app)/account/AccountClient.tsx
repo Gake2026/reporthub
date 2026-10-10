@@ -38,6 +38,12 @@ export default function AccountClient() {
   const [pwErr, setPwErr] = useState("");
   const [savingPw, setSavingPw] = useState(false);
 
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPw, setEmailPw] = useState("");
+  const [emailMsg, setEmailMsg] = useState("");
+  const [emailErr, setEmailErr] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+
   /* --- picture adjust editor state --- */
   const [editorSrc, setEditorSrc] = useState<string | null>(null);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
@@ -289,6 +295,45 @@ export default function AccountClient() {
     setSavingPw(false);
   }
 
+  async function changeEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setEmailMsg("");
+    setEmailErr("");
+    if (!newEmail.trim()) {
+      setEmailErr("Enter your new email address.");
+      return;
+    }
+    if (!emailPw) {
+      setEmailErr("Enter your current password to confirm.");
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const res = await fetch("/api/account/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current: emailPw, email: newEmail }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        email?: string;
+      };
+      if (!res.ok) {
+        setEmailErr(data.error || "Could not change your email.");
+        setSavingEmail(false);
+        return;
+      }
+      setEmail(data.email || newEmail.trim().toLowerCase());
+      setNewEmail("");
+      setEmailPw("");
+      setEmailMsg("Email changed. Use it the next time you sign in.");
+      router.refresh();
+    } catch {
+      setEmailErr("Network error. Please try again.");
+    }
+    setSavingEmail(false);
+  }
+
   if (loading) {
     return (
       <div className="card">
@@ -534,6 +579,50 @@ export default function AccountClient() {
           </div>
         </div>
       )}
+
+      {/* ---------- Email ---------- */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3>Email</h3>
+        {emailErr && <div className="alert alert-error">{emailErr}</div>}
+        {emailMsg && <div className="alert alert-ok">{emailMsg}</div>}
+        <form onSubmit={changeEmail}>
+          <div className="form-group">
+            <label>Current email</label>
+            <input className="input" value={email} disabled readOnly />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="acct-email-new">New email</label>
+              <input
+                id="acct-email-new"
+                type="email"
+                className="input"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="acct-email-pw">Current password</label>
+              <input
+                id="acct-email-pw"
+                type="password"
+                className="input"
+                value={emailPw}
+                onChange={(e) => setEmailPw(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={savingEmail}
+          >
+            {savingEmail ? "Changing…" : "Change email"}
+          </button>
+        </form>
+      </div>
 
       {/* ---------- Password ---------- */}
       <div className="card">
