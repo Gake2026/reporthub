@@ -192,20 +192,29 @@ export async function downloadReportPdf(
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
 
   // --- Spend trend chart (embedded from the rendered page chart) ---
+  // Always stays on page 1: shrinks proportionally to fit the remaining
+  // space rather than spilling onto its own page.
   const chart = await trendChartPng();
   if (chart) {
-    const cw = W - M * 2;
-    const ch = (cw * chart.h) / chart.w;
-    if (y + ch + 40 > 780) {
+    const fullW = W - M * 2;
+    const fullH = (fullW * chart.h) / chart.w;
+    const headingH = 34;
+    let space = 780 - y - headingH - 16;
+    if (space < 90) {
       doc.addPage();
       y = 56;
+      space = 780 - y - headingH - 16;
     }
+    const scale = Math.min(1, space / fullH);
+    const cw = fullW * scale;
+    const ch = fullH * scale;
+    const cx = M + (fullW - cw) / 2;
     doc.setTextColor(20, 20, 25);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.text("Spend trend", M, y);
     y += 10;
-    doc.addImage(chart.data, "PNG", M, y, cw, ch);
+    doc.addImage(chart.data, "PNG", cx, y, cw, ch);
     y += ch + 24;
   }
 
