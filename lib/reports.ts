@@ -12,10 +12,12 @@ export interface StoredReport {
   period_from: string;
   period_to: string;
   created_at: string;
+  client_website: string;
   snapshot: {
     kpis: Record<string, number | null>;
     channels: Array<Record<string, unknown>>;
     summary: string[];
+    trend?: Array<{ date: string; spend: number; conversions: number }>;
   };
 }
 
@@ -30,6 +32,11 @@ export function generateReport(clientId: number, from: string, to: string): numb
     kpis: data.kpis,
     channels: data.channels,
     summary: buildSummary(clientId, from, to),
+    trend: data.trend.map((t) => ({
+      date: t.date,
+      spend: t.spend,
+      conversions: t.conversions,
+    })),
   };
   const res = db
     .prepare(
@@ -43,7 +50,13 @@ export function generateReport(clientId: number, from: string, to: string): numb
 function toStored(row: Record<string, unknown>): StoredReport {
   let snapshot: StoredReport["snapshot"] = { kpis: {}, channels: [], summary: [] };
   try {
-    snapshot = JSON.parse(String(row.snapshot ?? "{}"));
+    const parsed = JSON.parse(String(row.snapshot ?? "{}"));
+    snapshot = {
+      kpis: parsed.kpis ?? {},
+      channels: parsed.channels ?? [],
+      summary: parsed.summary ?? [],
+      trend: parsed.trend,
+    };
   } catch {
     /* keep empty snapshot */
   }
@@ -51,6 +64,7 @@ function toStored(row: Record<string, unknown>): StoredReport {
     id: Number(row.id),
     client_id: Number(row.client_id),
     client_name: String(row.client_name ?? ""),
+    client_website: String(row.client_website ?? ""),
     period_from: String(row.period_from),
     period_to: String(row.period_to),
     created_at: String(row.created_at),
@@ -66,7 +80,7 @@ export function getReport(id: number, clientIds: number[] | "all"): StoredReport
   const params = clientIds === "all" ? [id] : [id, ...(clientIds as number[])];
   const row = db
     .prepare(
-      `SELECT r.*, c.name AS client_name FROM reports r
+      `SELECT r.*, c.name AS client_name, c.website AS client_website FROM reports r
        JOIN clients c ON c.id = r.client_id
        WHERE r.id = ? ${where}`
     )

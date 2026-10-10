@@ -4,28 +4,10 @@ import { getSession, visibleClientIds } from "../../../../lib/auth";
 import { getReport } from "../../../../lib/reports";
 import { getSettings } from "../../../../lib/settings";
 import { fmtDate, fmtMoney, fmtMoney2, fmtNum, fmtPct } from "../../../../lib/format";
+import { LineChart } from "../../../../components/charts";
+import SummaryBox from "../../../../components/SummaryBox";
 import { PrintButton } from "../../../../components/InvoiceDoc";
 import ReportPdfButton from "../../../../components/ReportPdfButton";
-
-const KPI_ROWS: Array<{
-  label: string;
-  format: (v: number | null) => string;
-  key: string;
-}> = [
-  { label: "Ad spend", key: "spend", format: (v) => fmtMoney(v) },
-  { label: "Impressions", key: "impressions", format: (v) => fmtNum(v) },
-  { label: "Clicks", key: "clicks", format: (v) => fmtNum(v) },
-  { label: "Conversions", key: "conversions", format: (v) => fmtNum(v) },
-  { label: "Revenue", key: "revenue", format: (v) => fmtMoney(v) },
-  { label: "CTR", key: "ctr", format: (v) => fmtPct(v) },
-  { label: "CPC", key: "cpc", format: (v) => fmtMoney2(v) },
-  { label: "CPA", key: "cpa", format: (v) => fmtMoney(v) },
-  {
-    label: "ROAS",
-    key: "roas",
-    format: (v) => (v == null ? "—" : `${v.toFixed(2)}x`),
-  },
-];
 
 export default async function ReportDetailPage({
   params,
@@ -40,9 +22,24 @@ export default async function ReportDetailPage({
   const report = getReport(Number(id), visibleClientIds(user));
   if (!report) notFound();
 
-  const { snapshot } = report;
-  const channels = snapshot.channels ?? [];
   const settings = getSettings();
+  const { snapshot } = report;
+  const k = (key: string): number | null =>
+    (snapshot.kpis[key] as number | null | undefined) ?? null;
+
+  const kpiRows: Array<[string, string]> = [
+    ["Ad spend", fmtMoney(k("spend"))],
+    ["Impressions", fmtNum(k("impressions"))],
+    ["Clicks", fmtNum(k("clicks"))],
+    ["Click-through rate", fmtPct(k("ctr"))],
+    ["Conversions", fmtNum(k("conversions"))],
+    ["Cost per conversion", fmtMoney2(k("cpa"))],
+    ["Attributed revenue", fmtMoney(k("revenue"))],
+    ["Return on ad spend", k("roas") != null ? `${(k("roas") as number).toFixed(2)}x` : "—"],
+  ];
+
+  const channels = snapshot.channels ?? [];
+  const trend = snapshot.trend ?? [];
 
   return (
     <>
@@ -63,95 +60,131 @@ export default async function ReportDetailPage({
         />
       </div>
 
-      <div className="pagehead">
-        <h1>{report.client_name}</h1>
-        <span className="sub">
-          {fmtDate(report.period_from)} – {fmtDate(report.period_to)} · generated{" "}
-          {fmtDate(report.created_at.slice(0, 10))}
-        </span>
+      <div className="pagehead noprint">
+        <div>
+          <h1>Client report</h1>
+          <div className="sub">
+            {report.client_name} · {fmtDate(report.period_from)} –{" "}
+            {fmtDate(report.period_to)}
+          </div>
+        </div>
       </div>
 
       <div className="card">
-        <h3>Performance summary</h3>
-        {snapshot.summary.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No summary was stored for this report.</p>
-        ) : (
-          snapshot.summary.map((line, i) => <p key={i}>{line}</p>)
-        )}
-      </div>
+        <div className="report-head">
+          {settings.logo_data ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logo_data} alt="" />
+          ) : (
+            <span
+              className="brand-mark"
+              style={{ width: 46, height: 46, fontSize: 22 }}
+            >
+              {settings.agency_name.trim().charAt(0).toUpperCase() || "R"}
+            </span>
+          )}
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>
+              {settings.agency_name}
+            </div>
+            <div className="report-meta">
+              Performance report · {report.client_name}
+              {report.client_website ? ` (${report.client_website})` : ""} ·{" "}
+              {fmtDate(report.period_from)} – {fmtDate(report.period_to)}
+            </div>
+          </div>
+        </div>
 
-      <div className="spacer" style={{ height: 16 }} />
+        <div style={{ margin: "4px 0 20px" }}>
+          <SummaryBox paragraphs={snapshot.summary} />
+        </div>
 
-      <div className="card">
         <h3>Key metrics</h3>
-        <div className="table-wrap">
+        <div className="table-wrap" style={{ boxShadow: "none", marginBottom: 20 }}>
           <table className="data">
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th className="num">Value</th>
-              </tr>
-            </thead>
             <tbody>
-              {KPI_ROWS.map((row) => (
-                <tr key={row.key}>
-                  <td>{row.label}</td>
-                  <td className="num">
-                    {row.format(
-                      (snapshot.kpis[row.key] as number | null | undefined) ?? null
-                    )}
+              {kpiRows.map(([label, value]) => (
+                <tr key={label}>
+                  <td style={{ color: "var(--muted)", width: "60%" }}>{label}</td>
+                  <td className="num" style={{ fontWeight: 700, fontSize: 15 }}>
+                    {value}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div className="spacer" style={{ height: 16 }} />
+        <h3>Spend trend</h3>
+        <div style={{ marginBottom: 20 }}>
+          {trend.length > 0 ? (
+            <LineChart
+              series={[
+                {
+                  name: "Spend",
+                  color: settings.primary_color,
+                  points: trend.map((t) => ({ x: t.date, y: t.spend })),
+                },
+                {
+                  name: "Conversions",
+                  color: settings.accent_color,
+                  points: trend.map((t) => ({ x: t.date, y: t.conversions })),
+                },
+              ]}
+            />
+          ) : (
+            <p style={{ color: "var(--muted)" }}>
+              Trend chart isn&apos;t stored for reports generated before this
+              update — regenerate the report to include it.
+            </p>
+          )}
+        </div>
 
-      <div className="card">
-        <h3>By channel</h3>
-        {channels.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No channel data for this period.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Channel</th>
-                  <th className="num">Spend</th>
-                  <th className="num">Impr.</th>
-                  <th className="num">Clicks</th>
-                  <th className="num">Conv.</th>
-                  <th className="num">Revenue</th>
-                  <th className="num">CTR</th>
-                  <th className="num">CPC</th>
-                  <th className="num">CPA</th>
-                  <th className="num">ROAS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {channels.map((c, i) => (
+        <h3>Channel breakdown</h3>
+        <div className="table-wrap" style={{ boxShadow: "none" }}>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Channel</th>
+                <th className="num">Spend</th>
+                <th className="num">Clicks</th>
+                <th className="num">Conv.</th>
+                <th className="num">CPA</th>
+                <th className="num">ROAS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {channels.map((c, i) => {
+                const roas = c.roas as number | null | undefined;
+                return (
                   <tr key={i}>
                     <td style={{ fontWeight: 600 }}>{String(c.channel ?? "")}</td>
                     <td className="num">{fmtMoney(c.spend as number | null)}</td>
-                    <td className="num">{fmtNum(c.impressions as number | null)}</td>
                     <td className="num">{fmtNum(c.clicks as number | null)}</td>
                     <td className="num">{fmtNum(c.conversions as number | null)}</td>
-                    <td className="num">{fmtMoney(c.revenue as number | null)}</td>
-                    <td className="num">{fmtPct(c.ctr as number | null)}</td>
-                    <td className="num">{fmtMoney2(c.cpc as number | null)}</td>
-                    <td className="num">{fmtMoney(c.cpa as number | null)}</td>
+                    <td className="num">{fmtMoney2(c.cpa as number | null)}</td>
                     <td className="num">
-                      {c.roas == null ? "—" : `${Number(c.roas).toFixed(2)}x`}
+                      {roas == null ? "—" : `${Number(roas).toFixed(2)}x`}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                );
+              })}
+              {channels.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ color: "var(--muted)" }}>
+                    No data in this period.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="report-meta" style={{ marginTop: 20 }}>
+          Prepared by {settings.agency_name}
+          {settings.support_email ? ` · ${settings.support_email}` : ""} · Generated{" "}
+          {fmtDate(report.created_at.slice(0, 10))}
+        </p>
       </div>
     </>
   );
