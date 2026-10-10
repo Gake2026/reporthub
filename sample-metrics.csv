@@ -1,0 +1,13 @@
+Report Date,Campaign Name,Platform,Impr.,Link Clicks,Amount Spent ($),Leads,Revenue
+10/01/2026,Fall Push - Search,Google Ads,"12,450",812,"$1,245.60",34,"$8,230.00"
+10/01/2026,Fall Push - Social,Meta Ads,"28,300","1,204","$980.25",41,"$9,410.50"
+10/02/2026,Fall Push - Search,Google Ads,"11,980",795,"$1,198.40",29,"$7,105.00"
+10/02/2026,Fall Push - Social,Meta Ads,"27,150","1,180","$955.10",38,"$8,860.00"
+10/03/2026,Evergreen - Brand,Google Ads,"8,200",640,"$410.75",22,"$5,200.00"
+10/03/2026,Fall Push - Video,TikTok Ads,"45,000","2,100","$620.00",18,"$2,940.00"
+2026-10-04,Fall Push - Search,Google Ads,12100,800,1210.55,31,7890.00
+2026-10-04,Fall Push - Social,Meta Ads,27900,1195,962.30,40,9120.75
+not-a-date,Broken Row,Google Ads,1000,50,100.00,2,500.00
+10/05/2026,,Google Ads,9000,600,900.00,20,4500.00
+10/05/2026,Fall Push - Search,Google Ads,11800,780,not-a-number,28,7100.00
+10/06/2026,Fall Push - Search,Google Ads,"12,300",805,"$1,230.10",33,"$8,050.25"
