@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession, visibleClientIds } from "../../../../lib/auth";
 import { getReport } from "../../../../lib/reports";
+import { getSettings } from "../../../../lib/settings";
 import { fmtDate, fmtMoney, fmtMoney2, fmtNum, fmtPct } from "../../../../lib/format";
 import { PrintButton } from "../../../../components/InvoiceDoc";
+import ReportPdfButton from "../../../../components/ReportPdfButton";
 
 const KPI_ROWS: Array<{
   label: string;
@@ -40,6 +42,7 @@ export default async function ReportDetailPage({
 
   const { snapshot } = report;
   const channels = snapshot.channels ?? [];
+  const settings = getSettings();
 
   return (
     <>
@@ -49,6 +52,15 @@ export default async function ReportDetailPage({
         </Link>
         <div className="spacer" />
         <PrintButton />
+        <ReportPdfButton
+          report={report}
+          settings={{
+            agency_name: settings.agency_name,
+            logo_data: settings.logo_data,
+            support_email: settings.support_email,
+            primary_color: settings.primary_color,
+          }}
+        />
       </div>
 
       <div className="pagehead">
