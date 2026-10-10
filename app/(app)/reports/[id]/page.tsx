@@ -118,20 +118,22 @@ export default async function ReportDetailPage({
         <h3>Spend trend</h3>
         <div style={{ marginBottom: 20 }}>
           {trend.length > 0 ? (
-            <LineChart
-              series={[
-                {
-                  name: "Spend",
-                  color: settings.primary_color,
-                  points: trend.map((t) => ({ x: t.date, y: t.spend })),
-                },
-                {
-                  name: "Conversions",
-                  color: settings.accent_color,
-                  points: trend.map((t) => ({ x: t.date, y: t.conversions })),
-                },
-              ]}
-            />
+            <div id="report-trend-chart">
+              <LineChart
+                series={[
+                  {
+                    name: "Spend",
+                    color: settings.primary_color,
+                    points: trend.map((t) => ({ x: t.date, y: t.spend })),
+                  },
+                  {
+                    name: "Conversions",
+                    color: settings.accent_color,
+                    points: trend.map((t) => ({ x: t.date, y: t.conversions })),
+                  },
+                ]}
+              />
+            </div>
           ) : (
             <p style={{ color: "var(--muted)" }}>
               Trend chart isn&apos;t stored for reports generated before this

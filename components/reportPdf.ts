@@ -46,6 +46,43 @@ const KPI_ROWS: Array<{
   },
 ];
 
+/** Snapshot the rendered trend chart (SVG) into a PNG for the PDF. */
+async function trendChartPng(): Promise<{ data: string; w: number; h: number } | null> {
+  try {
+    const svg = document.querySelector(
+      "#report-trend-chart svg"
+    ) as SVGSVGElement | null;
+    if (!svg) return null;
+    const W = 1440;
+    const H = 520;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("width", String(W));
+    clone.setAttribute("height", String(H));
+    const xml = new XMLSerializer().serializeToString(clone);
+    const url = URL.createObjectURL(
+      new Blob([xml], { type: "image/svg+xml;charset=utf-8" })
+    );
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("chart raster failed"));
+      im.src = url;
+    });
+    URL.revokeObjectURL(url);
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+    return { data: canvas.toDataURL("image/png"), w: W, h: H };
+  } catch {
+    return null;
+  }
+}
+
 /** Build the client report PDF in the browser and trigger a real file download. */
 export async function downloadReportPdf(
   report: StoredReport,
@@ -153,6 +190,24 @@ export async function downloadReportPdf(
     alternateRowStyles: { fillColor: [247, 247, 250] },
   });
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
+
+  // --- Spend trend chart (embedded from the rendered page chart) ---
+  const chart = await trendChartPng();
+  if (chart) {
+    const cw = W - M * 2;
+    const ch = (cw * chart.h) / chart.w;
+    if (y + ch + 40 > 780) {
+      doc.addPage();
+      y = 56;
+    }
+    doc.setTextColor(20, 20, 25);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Spend trend", M, y);
+    y += 10;
+    doc.addImage(chart.data, "PNG", M, y, cw, ch);
+    y += ch + 24;
+  }
 
   // --- By channel (landscape — 10 columns need the width) ---
   const channels = snapshot.channels ?? [];
