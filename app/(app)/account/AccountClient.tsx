@@ -439,17 +439,14 @@ export default function AccountClient() {
                   pointerEvents: "none",
                 }}
               />
-              {/* circular crop hole */}
+              {/* dimmed overlay with a clean circular cutout */}
               <div
                 style={{
                   position: "absolute",
-                  left: cropLeft - 60,
-                  top: cropLeft - 60,
-                  width: D + 120,
-                  height: D + 120,
-                  borderRadius: "50%",
-                  border: "60px solid rgba(0,0,0,0.6)",
-                  boxSizing: "content-box",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.55)",
+                  WebkitMaskImage: `radial-gradient(circle ${D / 2}px at 50% 50%, transparent ${D / 2 - 1}px, black ${D / 2 + 1}px)`,
+                  maskImage: `radial-gradient(circle ${D / 2}px at 50% 50%, transparent ${D / 2 - 1}px, black ${D / 2 + 1}px)`,
                   pointerEvents: "none",
                 }}
               />
