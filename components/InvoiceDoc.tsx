@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import { useState } from "react";
 import type { Invoice } from "../lib/invoices";
 import { fmtDate, fmtMoney2 } from "../lib/format";
 import { StatusBadge } from "./ui";
@@ -21,11 +22,40 @@ export interface InvoiceDocSettings {
   primary_color: string;
 }
 
-/** Small client button that prints / saves the document as PDF. */
-export function PrintButton({ label = "Save / Download" }: { label?: string }) {
+/** Small client button that opens the print dialog. */
+export function PrintButton({ label = "Print" }: { label?: string }) {
   return (
     <button type="button" className="btn noprint" onClick={() => window.print()}>
       {label}
+    </button>
+  );
+}
+
+/** Small client button that downloads the invoice as a real PDF file. */
+export function DownloadPdfButton({
+  invoice,
+  settings,
+}: {
+  invoice: Invoice;
+  settings: InvoiceDocSettings;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn btn-primary noprint"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const { downloadInvoicePdf } = await import("./invoicePdf");
+          await downloadInvoicePdf(invoice, settings);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? "Preparing…" : "Download PDF"}
     </button>
   );
 }
@@ -67,6 +97,7 @@ export default function InvoiceDoc({
         </Link>
         <div className="spacer" />
         <PrintButton />
+        <DownloadPdfButton invoice={invoice} settings={settings} />
       </div>
 
       <div className="card invoice-sheet">
